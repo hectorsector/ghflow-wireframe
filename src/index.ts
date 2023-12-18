@@ -276,6 +276,26 @@ class InteractiveDiagram {
         this.setStep(annotation.name)
       })
     })
+
+    var diagramIcons = document.querySelectorAll(
+      '.diagram-icon, .diagram-icon-small'
+    )
+    diagramIcons.forEach((icon) => {
+      icon.addEventListener('click', (e) => {
+        let step = icon.getAttribute('data-diagram-step')
+        console.log(`clicked on ${step}`)
+        if (step !== null) {
+          this.setStep(step)
+        } else {
+          throw new Error(
+            `data-diagram-step attribute doesn't exist for ${icon}`
+          )
+        }
+
+        // changePanel(document.querySelector('.js-panel-content-' + step))
+        // changeAnnotation(annotations, step)
+      })
+    })
   }
 
   private setNextStep() {
@@ -285,9 +305,13 @@ class InteractiveDiagram {
     this.setStep(undefined, currentStepIndex + 1)
   }
   private setPreviousStep() {
+    // console.log('starting prev step calc')
     let currentStepIndex = this.allSteps.findIndex(
       (step) => step.id === this.currentStep.id
     )
+    // console.log(
+    //   `currentStepIndex is ${currentStepIndex}, figuring out what's prev`
+    // )
     this.setStep(undefined, currentStepIndex - 1)
   }
   /**
@@ -296,16 +320,16 @@ class InteractiveDiagram {
    * @param index The index of the step to set, if not provided, the currentStepIndex will be used
    */
   private setStep(id?: string, index?: number) {
-    console.log(`setting step to ${id} or ${index}`)
-    if (index) {
-      if (index < 0) this.currentStep = this.allSteps[0]
-      else if (index > this.allSteps.length - 1)
-        this.currentStep = this.allSteps[this.allSteps.length - 1]
-      else this.currentStep = this.allSteps[index]
+    console.log(`looking to set the step to ${id} or ${index}`)
+    if (index !== undefined) {
+      index = Math.max(0, Math.min(index, this.allSteps.length - 1))
+      this.currentStep = this.allSteps[index]
     } else if (id) {
       this.currentStep = this.allSteps.find((step) => step.id === id)!
     }
-
+    console.log(
+      `after calc bounds, step we want to show is ${this.currentStep.id}`
+    )
     this.showCurrentStep()
   }
 
@@ -313,6 +337,7 @@ class InteractiveDiagram {
    * Shows the current step and hides all other steps.
    */
   private showCurrentStep() {
+    console.log(`showing step ${this.currentStep.id}`)
     this.allSteps.forEach((step) => {
       if (step === this.currentStep) {
         step.show()

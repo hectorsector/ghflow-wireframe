@@ -179,6 +179,21 @@ var InteractiveDiagram = /** @class */ (function () {
                 _this.setStep(annotation.name);
             });
         });
+        var diagramIcons = document.querySelectorAll('.diagram-icon, .diagram-icon-small');
+        diagramIcons.forEach(function (icon) {
+            icon.addEventListener('click', function (e) {
+                var step = icon.getAttribute('data-diagram-step');
+                console.log("clicked on ".concat(step));
+                if (step !== null) {
+                    _this.setStep(step);
+                }
+                else {
+                    throw new Error("data-diagram-step attribute doesn't exist for ".concat(icon));
+                }
+                // changePanel(document.querySelector('.js-panel-content-' + step))
+                // changeAnnotation(annotations, step)
+            });
+        });
     }
     InteractiveDiagram.prototype.setNextStep = function () {
         var _this = this;
@@ -187,7 +202,11 @@ var InteractiveDiagram = /** @class */ (function () {
     };
     InteractiveDiagram.prototype.setPreviousStep = function () {
         var _this = this;
+        // console.log('starting prev step calc')
         var currentStepIndex = this.allSteps.findIndex(function (step) { return step.id === _this.currentStep.id; });
+        // console.log(
+        //   `currentStepIndex is ${currentStepIndex}, figuring out what's prev`
+        // )
         this.setStep(undefined, currentStepIndex - 1);
     };
     /**
@@ -196,18 +215,15 @@ var InteractiveDiagram = /** @class */ (function () {
      * @param index The index of the step to set, if not provided, the currentStepIndex will be used
      */
     InteractiveDiagram.prototype.setStep = function (id, index) {
-        console.log("setting step to ".concat(id, " or ").concat(index));
-        if (index) {
-            if (index < 0)
-                this.currentStep = this.allSteps[0];
-            else if (index > this.allSteps.length - 1)
-                this.currentStep = this.allSteps[this.allSteps.length - 1];
-            else
-                this.currentStep = this.allSteps[index];
+        console.log("looking to set the step to ".concat(id, " or ").concat(index));
+        if (index !== undefined) {
+            index = Math.max(0, Math.min(index, this.allSteps.length - 1));
+            this.currentStep = this.allSteps[index];
         }
         else if (id) {
             this.currentStep = this.allSteps.find(function (step) { return step.id === id; });
         }
+        console.log("after calc bounds, step we want to show is ".concat(this.currentStep.id));
         this.showCurrentStep();
     };
     /**
@@ -215,6 +231,7 @@ var InteractiveDiagram = /** @class */ (function () {
      */
     InteractiveDiagram.prototype.showCurrentStep = function () {
         var _this = this;
+        console.log("showing step ".concat(this.currentStep.id));
         this.allSteps.forEach(function (step) {
             if (step === _this.currentStep) {
                 step.show();
