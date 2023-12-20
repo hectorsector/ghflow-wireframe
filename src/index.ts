@@ -2,15 +2,19 @@ class Step {
   public readonly id: string
   private active: boolean
   private element: HTMLElement
+  public annotation: Annotation
 
-  constructor(stepId: string, element: HTMLElement) {
+  constructor(stepId: string, element: HTMLElement, annotation: Annotation) {
     this.id = stepId
     this.element = element
     this.active = false
+    this.annotation = annotation
   }
 
   public show() {
     this.element.style.display = 'block'
+    this.element.classList.add('active')
+
     this.active = true
   }
   public hide() {
@@ -168,9 +172,6 @@ class Annotation {
     // this.paper.appendChild(this.targetOuter)
     // this.paper.appendChild(this.targetInner)
   }
-
-  // private initLines() {
-  // }
 }
 
 class InteractiveDiagram {
@@ -196,7 +197,8 @@ class InteractiveDiagram {
   constructor(
     contentDivId: string,
     diagramBaseDivId: string,
-    allDataSteps: string[],
+    steps: { name: string; placement: { [key: string]: number } }[],
+    // allDataSteps: string[],
     previousControlId: string,
     nextControlId: string
   ) {
@@ -210,7 +212,16 @@ class InteractiveDiagram {
       throw new Error('Element is not an SVGElement')
     }
 
-    this.allSteps = this.getStepDivs(allDataSteps)
+    this.allSteps = []
+    steps.forEach((step) => {
+      this.allSteps.push(
+        new Step(
+          step.name,
+          this.getStepDivs(step.name),
+          new Annotation(step.name, this.diagramBaseSVG, step.placement)
+        )
+      )
+    })
 
     // set controls
     this.previousControl = this.getElementFromId(previousControlId)
@@ -232,50 +243,59 @@ class InteractiveDiagram {
     // set initial step and get all the steps ready
     // this.currentStep = this.allSteps[0]
     // TODO programmatically set to index0
+    this.currentStep = this.allSteps[0]
     this.setStep('branch')
 
-    let annotations = [
-      new Annotation('branch', this.diagramBaseSVG, {
-        top: 20,
-        left: 88,
-        height: 207,
-      }),
-      new Annotation('commits', this.diagramBaseSVG, {
-        top: 140,
-        left: 289,
-        height: 86,
-        width: 113,
-      }),
-      new Annotation('pr', this.diagramBaseSVG, {
-        top: 137,
-        left: 423,
-        height: 89,
-      }),
-      new Annotation('code-review', this.diagramBaseSVG, {
-        top: 140,
-        left: 550,
-        height: 86,
-        width: 145,
-      }),
-      new Annotation('deploy', this.diagramBaseSVG, {
-        top: 137,
-        left: 688,
-        height: 89,
-      }),
-      new Annotation('merge', this.diagramBaseSVG, {
-        top: 20,
-        left: 840,
-        height: 207,
-      }),
-    ]
+    // let annotations = [
+    //   new Annotation('branch', this.diagramBaseSVG, {
+    //     top: 20,
+    //     left: 88,
+    //     height: 207,
+    //   }),
+    //   new Annotation('commits', this.diagramBaseSVG, {
+    //     top: 140,
+    //     left: 289,
+    //     height: 86,
+    //     width: 113,
+    //   }),
+    //   new Annotation('pr', this.diagramBaseSVG, {
+    //     top: 137,
+    //     left: 423,
+    //     height: 89,
+    //   }),
+    //   new Annotation('code-review', this.diagramBaseSVG, {
+    //     top: 140,
+    //     left: 550,
+    //     height: 86,
+    //     width: 145,
+    //   }),
+    //   new Annotation('deploy', this.diagramBaseSVG, {
+    //     top: 137,
+    //     left: 688,
+    //     height: 89,
+    //   }),
+    //   new Annotation('merge', this.diagramBaseSVG, {
+    //     top: 20,
+    //     left: 840,
+    //     height: 207,
+    //   }),
+    // ]
 
-    annotations.forEach((annotation) => {
-      annotation.target.addEventListener('click', (e) => {
+    this.allSteps.forEach((step) => {
+      step.annotation.target.addEventListener('click', (e) => {
         e.preventDefault()
-        console.log(`clicked on annotation ${annotation.name}`)
-        this.setStep(annotation.name)
+        console.log(`clicked on annotation ${step.id}`)
+        this.setStep(step.id)
       })
     })
+
+    // annotations.forEach((annotation) => {
+    //   annotation.target.addEventListener('click', (e) => {
+    //     e.preventDefault()
+    //     console.log(`clicked on annotation ${annotation.name}`)
+    //     this.setStep(annotation.name)
+    //   })
+    // })
 
     var diagramIcons = document.querySelectorAll(
       '.diagram-icon, .diagram-icon-small'
@@ -368,17 +388,13 @@ class InteractiveDiagram {
    * @param steps An array of strings that represent the data-step attribute of each step
    * @returns An array of HTMLElements that match the provided data-step attributes
    */
-  private getStepDivs(steps: string[]) {
-    let queriedStepDivs: Step[] = steps.map((step) => {
-      let element = document.querySelector(`[data-step="${step}"]`)
-      if (element) {
-        return new Step(step, element as HTMLElement)
-      } else {
-        throw new Error(`Step ${step} not found`)
-      }
-    })
-
-    return queriedStepDivs
+  private getStepDivs(step: string) {
+    let element = document.querySelector(`[data-step="${step}"]`)
+    if (element) {
+      return element as HTMLElement
+    } else {
+      throw new Error(`Step ${step} not found`)
+    }
   }
 
   render() {
@@ -397,7 +413,21 @@ let githubFlow = new InteractiveDiagram(
   // - an id of the div that contains the step content
   // - the SVG that illustrates the step
   // - a position to target the annotation (x,y)
-  ['branch', 'commits', 'pr', 'code-review', 'deploy', 'merge'],
+  [
+    { name: 'branch', placement: { top: 20, left: 88, height: 207 } },
+    {
+      name: 'commits',
+      placement: { top: 140, left: 289, height: 86, width: 113 },
+    },
+    { name: 'pr', placement: { top: 137, left: 423, height: 89 } },
+    {
+      name: 'code-review',
+      placement: { top: 140, left: 550, height: 86, width: 145 },
+    },
+    { name: 'deploy', placement: { top: 137, left: 688, height: 89 } },
+    { name: 'merge', placement: { top: 20, left: 840, height: 207 } },
+  ],
+  // ['branch', 'commits', 'pr', 'code-review', 'deploy', 'merge'],
   'previous',
   'next'
 )
