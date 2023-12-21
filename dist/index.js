@@ -1,18 +1,26 @@
 "use strict";
 var Step = /** @class */ (function () {
-    function Step(stepId, element, annotation) {
-        this.id = stepId;
-        this.element = element;
+    function Step(stepId, content, image, annotation) {
+        this.name = stepId;
+        this.contentContainer = content;
         this.active = false;
         this.annotation = annotation;
+        if (image)
+            this.image = image;
+        else
+            throw new Error('No image found');
     }
     Step.prototype.show = function () {
-        this.element.style.display = 'block';
-        this.element.classList.add('active');
+        this.contentContainer.style.display = 'block';
+        this.contentContainer.classList.add('active');
+        this.annotation.activate();
+        this.image.classList.add('active');
         this.active = true;
     };
     Step.prototype.hide = function () {
-        this.element.style.display = 'none';
+        this.contentContainer.style.display = 'none';
+        this.annotation.deactivate();
+        this.image.classList.remove('active');
         this.active = false;
     };
     Step.prototype.isActive = function () {
@@ -22,40 +30,44 @@ var Step = /** @class */ (function () {
 }());
 var Annotation = /** @class */ (function () {
     function Annotation(name, paper, placement) {
-        this.DASH_COLOR = '#d4d4d4';
-        this.SOLID_COLOR = '#932D70';
-        this.TARGET_COLOR = '#4183c4';
-        this.BOTTOM = 266;
+        this.COLORS = {
+            DASH_COLOR: '#d4d4d4',
+            ACTIVE_COLOR: '#932D70',
+            INACTIVE_COLOR: '#4183c4',
+        };
         this.active = false;
         this.name = name;
         this.paper = paper;
-        this.top = placement.top;
-        this.left = placement.left;
-        this.height = placement.height;
-        this.width = placement.width;
+        this.placement = {
+            top: placement.top,
+            left: placement.left,
+            height: placement.height,
+            width: placement.width,
+            BOTTOM: 266,
+        };
         this.target = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this.initLines();
-        this.initTarget();
+        this.extender = this.initLines();
+        this.target = this.createCircle(this.placement.left, this.placement.top + this.placement.height, 7, {
+            fill: this.COLORS.INACTIVE_COLOR,
+        });
+        this.paper.appendChild(this.target);
     }
     Annotation.prototype.initLines = function () {
-        var _this = this;
-        if (this.width) {
-            this.lines = [
-                this.createLine(this.left - this.width / 2, this.top + 30, this.left + this.width / 2, this.top + 30),
-                this.createLine(this.left - this.width / 2, this.top, this.left - this.width / 2, this.top + 30),
-                this.createLine(this.left + this.width / 2, this.top, this.left + this.width / 2, this.top + 30),
-                (this.extender = this.createLine(this.left, this.top + 30, this.left, this.top + this.height)),
-            ];
-        }
-        else {
-            this.lines = [
-                (this.extender = this.createLine(this.left, this.top, this.left, this.top + this.height)),
-            ];
-        }
-        this.lines.forEach(function (line) {
-            console.log("creating a line for ".concat(_this.name));
-            _this.paper.appendChild(line);
-        });
+        var line = this.createLine(this.placement.left, this.placement.top, this.placement.left, this.placement.top + this.placement.height);
+        this.paper.appendChild(line);
+        return line;
+    };
+    Annotation.prototype.activate = function () {
+        console.log("Activatin'");
+        this.target.setAttribute('fill', this.COLORS.ACTIVE_COLOR);
+        this.extender.setAttribute('stroke', this.COLORS.ACTIVE_COLOR);
+        this.extender.setAttribute('stroke-dasharray', 'none');
+    };
+    Annotation.prototype.deactivate = function () {
+        console.log("Activatin'");
+        this.target.setAttribute('fill', this.COLORS.INACTIVE_COLOR);
+        this.extender.setAttribute('stroke', this.COLORS.DASH_COLOR);
+        this.extender.setAttribute('stroke-dasharray', '3');
     };
     Annotation.prototype.createLine = function (x1, y1, x2, y2) {
         var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -63,7 +75,7 @@ var Annotation = /** @class */ (function () {
         line.setAttribute('y1', y1.toString());
         line.setAttribute('x2', x2.toString());
         line.setAttribute('y2', y2.toString());
-        line.setAttribute('stroke', this.DASH_COLOR);
+        line.setAttribute('stroke', this.COLORS.DASH_COLOR);
         line.setAttribute('stroke-width', '1');
         line.setAttribute('stroke-dasharray', '3');
         return line;
@@ -77,27 +89,6 @@ var Annotation = /** @class */ (function () {
             circle.setAttribute(key, attributes[key]);
         }
         return circle;
-    };
-    Annotation.prototype.initTarget = function () {
-        this.targetOuter = this.createCircle(this.left, this.top + this.height, 7, {
-            fill: this.TARGET_COLOR,
-        });
-        this.targetInner = this.createCircle(this.left, this.top + this.height, 5, {
-            fill: this.TARGET_COLOR,
-            'stroke-width': '2',
-            stroke: '#fff',
-        });
-        // this.targetOuter.setAttribute('fill', this.TARGET_COLOR)
-        // this.targetInner.setAttribute('fill', this.TARGET_COLOR)
-        // this.targetInner.setAttribute('stroke-width', '2')
-        // this.targetInner.setAttribute('stroke', '#fff')
-        this.target.appendChild(this.targetOuter);
-        this.target.appendChild(this.targetInner);
-        // this.target!.appendChild(this.targetOuter)
-        // this.target!.appendChild(this.targetInner)
-        this.paper.appendChild(this.target);
-        // this.paper.appendChild(this.targetOuter)
-        // this.paper.appendChild(this.targetInner)
     };
     return Annotation;
 }());
@@ -126,7 +117,7 @@ var InteractiveDiagram = /** @class */ (function () {
         }
         this.allSteps = [];
         steps.forEach(function (step) {
-            _this.allSteps.push(new Step(step.name, _this.getStepDivs(step.name), new Annotation(step.name, _this.diagramBaseSVG, step.placement)));
+            _this.allSteps.push(new Step(step.name, _this.getStepDiv(step.name), document.querySelector("[data-diagram-step=\"".concat(step.name, "\"]")), new Annotation(step.name, _this.diagramBaseSVG, step.placement)));
         });
         // set controls
         this.previousControl = this.getElementFromId(previousControlId);
@@ -183,8 +174,13 @@ var InteractiveDiagram = /** @class */ (function () {
         this.allSteps.forEach(function (step) {
             step.annotation.target.addEventListener('click', function (e) {
                 e.preventDefault();
-                console.log("clicked on annotation ".concat(step.id));
-                _this.setStep(step.id);
+                console.log("clicked on annotation ".concat(step.name));
+                _this.setStep(step.name);
+            });
+            step.image.addEventListener('click', function (e) {
+                e.preventDefault();
+                console.log("clicked on annotation ".concat(step.name));
+                _this.setStep(step.name);
             });
         });
         // annotations.forEach((annotation) => {
@@ -194,31 +190,34 @@ var InteractiveDiagram = /** @class */ (function () {
         //     this.setStep(annotation.name)
         //   })
         // })
-        var diagramIcons = document.querySelectorAll('.diagram-icon, .diagram-icon-small');
-        diagramIcons.forEach(function (icon) {
-            icon.addEventListener('click', function (e) {
-                var step = icon.getAttribute('data-diagram-step');
-                console.log("clicked on ".concat(step));
-                if (step !== null) {
-                    _this.setStep(step);
-                }
-                else {
-                    throw new Error("data-diagram-step attribute doesn't exist for ".concat(icon));
-                }
-                // changePanel(document.querySelector('.js-panel-content-' + step))
-                // changeAnnotation(annotations, step)
-            });
-        });
+        // var diagramIcons = document.querySelectorAll(
+        //   '.diagram-icon, .diagram-icon-small'
+        // )
+        // diagramIcons.forEach((icon) => {
+        //   icon.addEventListener('click', (e) => {
+        //     let step = icon.getAttribute('data-diagram-step')
+        //     console.log(`clicked on ${step}`)
+        //     if (step !== null) {
+        //       this.setStep(step)
+        //     } else {
+        //       throw new Error(
+        //         `data-diagram-step attribute doesn't exist for ${icon}`
+        //       )
+        //     }
+        // changePanel(document.querySelector('.js-panel-content-' + step))
+        // changeAnnotation(annotations, step)
+        // })
+        // })
     }
     InteractiveDiagram.prototype.setNextStep = function () {
         var _this = this;
-        var currentStepIndex = this.allSteps.findIndex(function (step) { return step.id === _this.currentStep.id; });
+        var currentStepIndex = this.allSteps.findIndex(function (step) { return step.name === _this.currentStep.name; });
         this.setStep(undefined, currentStepIndex + 1);
     };
     InteractiveDiagram.prototype.setPreviousStep = function () {
         var _this = this;
         // console.log('starting prev step calc')
-        var currentStepIndex = this.allSteps.findIndex(function (step) { return step.id === _this.currentStep.id; });
+        var currentStepIndex = this.allSteps.findIndex(function (step) { return step.name === _this.currentStep.name; });
         // console.log(
         //   `currentStepIndex is ${currentStepIndex}, figuring out what's prev`
         // )
@@ -236,9 +235,9 @@ var InteractiveDiagram = /** @class */ (function () {
             this.currentStep = this.allSteps[index];
         }
         else if (id) {
-            this.currentStep = this.allSteps.find(function (step) { return step.id === id; });
+            this.currentStep = this.allSteps.find(function (step) { return step.name === id; });
         }
-        console.log("after calc bounds, step we want to show is ".concat(this.currentStep.id));
+        console.log("after calc bounds, step we want to show is ".concat(this.currentStep.name));
         this.showCurrentStep();
     };
     /**
@@ -246,7 +245,7 @@ var InteractiveDiagram = /** @class */ (function () {
      */
     InteractiveDiagram.prototype.showCurrentStep = function () {
         var _this = this;
-        console.log("showing step ".concat(this.currentStep.id));
+        console.log("showing step ".concat(this.currentStep.name));
         this.allSteps.forEach(function (step) {
             if (step === _this.currentStep) {
                 step.show();
@@ -277,7 +276,7 @@ var InteractiveDiagram = /** @class */ (function () {
      * @param steps An array of strings that represent the data-step attribute of each step
      * @returns An array of HTMLElements that match the provided data-step attributes
      */
-    InteractiveDiagram.prototype.getStepDivs = function (step) {
+    InteractiveDiagram.prototype.getStepDiv = function (step) {
         var element = document.querySelector("[data-step=\"".concat(step, "\"]"));
         if (element) {
             return element;
@@ -287,7 +286,7 @@ var InteractiveDiagram = /** @class */ (function () {
         }
     };
     InteractiveDiagram.prototype.render = function () {
-        return "Hello! I created a new instance of InteractiveDiagram. Here are the details:\n    contentDiv: ".concat(this.contentDiv.id, "\n    diagramBaseSVG: ").concat(this.diagramBaseSVG, "\n    currentStep: ").concat(this.currentStep.id, "\n    ");
+        return "Hello! I created a new instance of InteractiveDiagram. Here are the details:\n    contentDiv: ".concat(this.contentDiv.id, "\n    diagramBaseSVG: ").concat(this.diagramBaseSVG, "\n    currentStep: ").concat(this.currentStep.name, "\n    ");
     };
     return InteractiveDiagram;
 }());

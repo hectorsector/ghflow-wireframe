@@ -130,6 +130,12 @@
   left: 813px;
 }
 
+.diagram-icon-commits {
+  top: 96px;
+  left: 220px;
+  background-color: #fff;
+}
+
 .diagram-icon-commit-1 {
   top: 96px;
   left: 220px;

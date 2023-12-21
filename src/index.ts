@@ -1,24 +1,37 @@
 class Step {
-  public readonly id: string
+  public readonly name: string
   private active: boolean
-  private element: HTMLElement
+  private contentContainer: HTMLElement
+  public image: Element
   public annotation: Annotation
 
-  constructor(stepId: string, element: HTMLElement, annotation: Annotation) {
-    this.id = stepId
-    this.element = element
+  constructor(
+    stepId: string,
+    content: HTMLElement,
+    image: Element | null,
+    annotation: Annotation
+  ) {
+    this.name = stepId
+    this.contentContainer = content
     this.active = false
     this.annotation = annotation
+    if (image) this.image = image
+    else throw new Error('No image found')
   }
 
   public show() {
-    this.element.style.display = 'block'
-    this.element.classList.add('active')
+    this.contentContainer.style.display = 'block'
+    this.contentContainer.classList.add('active')
 
+    this.annotation.activate()
+    this.image.classList.add('active')
     this.active = true
   }
   public hide() {
-    this.element.style.display = 'none'
+    this.contentContainer.style.display = 'none'
+
+    this.annotation.deactivate()
+    this.image.classList.remove('active')
     this.active = false
   }
 
@@ -27,23 +40,28 @@ class Step {
   }
 }
 
+interface Placement {
+  top: number
+  left: number
+  height: number
+  width: number
+  BOTTOM: number
+}
+
 class Annotation {
-  private DASH_COLOR = '#d4d4d4'
-  private SOLID_COLOR = '#932D70'
-  private TARGET_COLOR = '#4183c4'
-  private BOTTOM = 266
+  private COLORS = {
+    DASH_COLOR: '#d4d4d4',
+    ACTIVE_COLOR: '#932D70',
+    INACTIVE_COLOR: '#4183c4',
+  }
+
+  private placement: Placement
 
   private paper: SVGElement
-  private top: number
-  private left: number
-  private height: number
-  private width: number
+
   public readonly name: string
 
-  private extender?: SVGLineElement
-  private lines?: SVGLineElement[]
-  private targetInner?: SVGCircleElement
-  private targetOuter?: SVGCircleElement
+  private extender: SVGLineElement
   public readonly target: SVGElement
 
   private active = false
@@ -56,63 +74,56 @@ class Annotation {
     this.name = name
     this.paper = paper
 
-    this.top = placement.top
-    this.left = placement.left
-    this.height = placement.height
-    this.width = placement.width
+    this.placement = {
+      top: placement.top,
+      left: placement.left,
+      height: placement.height,
+      width: placement.width,
+      BOTTOM: 266,
+    }
 
     this.target = document.createElementNS(
       'http://www.w3.org/2000/svg',
       'g'
     ) as SVGElement
 
-    this.initLines()
-    this.initTarget()
+    this.extender = this.initLines()
+
+    this.target = this.createCircle(
+      this.placement.left,
+      this.placement.top + this.placement.height,
+      7,
+      {
+        fill: this.COLORS.INACTIVE_COLOR,
+      }
+    )
+
+    this.paper.appendChild(this.target)
   }
 
   private initLines() {
-    if (this.width) {
-      this.lines = [
-        this.createLine(
-          this.left - this.width / 2,
-          this.top + 30,
-          this.left + this.width / 2,
-          this.top + 30
-        ),
-        this.createLine(
-          this.left - this.width / 2,
-          this.top,
-          this.left - this.width / 2,
-          this.top + 30
-        ),
-        this.createLine(
-          this.left + this.width / 2,
-          this.top,
-          this.left + this.width / 2,
-          this.top + 30
-        ),
-        (this.extender = this.createLine(
-          this.left,
-          this.top + 30,
-          this.left,
-          this.top + this.height
-        )),
-      ]
-    } else {
-      this.lines = [
-        (this.extender = this.createLine(
-          this.left,
-          this.top,
-          this.left,
-          this.top + this.height
-        )),
-      ]
-    }
+    let line = this.createLine(
+      this.placement.left,
+      this.placement.top,
+      this.placement.left,
+      this.placement.top + this.placement.height
+    )
+    this.paper.appendChild(line)
+    return line
+  }
 
-    this.lines.forEach((line) => {
-      console.log(`creating a line for ${this.name}`)
-      this.paper.appendChild(line)
-    })
+  activate() {
+    console.log("Activatin'")
+    this.target.setAttribute('fill', this.COLORS.ACTIVE_COLOR)
+    this.extender.setAttribute('stroke', this.COLORS.ACTIVE_COLOR)
+    this.extender.setAttribute('stroke-dasharray', 'none')
+  }
+
+  deactivate() {
+    console.log("Activatin'")
+    this.target.setAttribute('fill', this.COLORS.INACTIVE_COLOR)
+    this.extender.setAttribute('stroke', this.COLORS.DASH_COLOR)
+    this.extender.setAttribute('stroke-dasharray', '3')
   }
 
   private createLine(x1: number, y1: number, x2: number, y2: number) {
@@ -121,7 +132,7 @@ class Annotation {
     line.setAttribute('y1', y1.toString())
     line.setAttribute('x2', x2.toString())
     line.setAttribute('y2', y2.toString())
-    line.setAttribute('stroke', this.DASH_COLOR)
+    line.setAttribute('stroke', this.COLORS.DASH_COLOR)
     line.setAttribute('stroke-width', '1')
     line.setAttribute('stroke-dasharray', '3')
 
@@ -147,30 +158,6 @@ class Annotation {
     }
 
     return circle
-  }
-
-  private initTarget() {
-    this.targetOuter = this.createCircle(this.left, this.top + this.height, 7, {
-      fill: this.TARGET_COLOR,
-    })
-    this.targetInner = this.createCircle(this.left, this.top + this.height, 5, {
-      fill: this.TARGET_COLOR,
-      'stroke-width': '2',
-      stroke: '#fff',
-    })
-
-    // this.targetOuter.setAttribute('fill', this.TARGET_COLOR)
-    // this.targetInner.setAttribute('fill', this.TARGET_COLOR)
-    // this.targetInner.setAttribute('stroke-width', '2')
-    // this.targetInner.setAttribute('stroke', '#fff')
-
-    this.target.appendChild(this.targetOuter)
-    this.target.appendChild(this.targetInner)
-    // this.target!.appendChild(this.targetOuter)
-    // this.target!.appendChild(this.targetInner)
-    this.paper.appendChild(this.target)
-    // this.paper.appendChild(this.targetOuter)
-    // this.paper.appendChild(this.targetInner)
   }
 }
 
@@ -217,7 +204,8 @@ class InteractiveDiagram {
       this.allSteps.push(
         new Step(
           step.name,
-          this.getStepDivs(step.name),
+          this.getStepDiv(step.name),
+          document.querySelector(`[data-diagram-step="${step.name}"]`),
           new Annotation(step.name, this.diagramBaseSVG, step.placement)
         )
       )
@@ -284,8 +272,13 @@ class InteractiveDiagram {
     this.allSteps.forEach((step) => {
       step.annotation.target.addEventListener('click', (e) => {
         e.preventDefault()
-        console.log(`clicked on annotation ${step.id}`)
-        this.setStep(step.id)
+        console.log(`clicked on annotation ${step.name}`)
+        this.setStep(step.name)
+      })
+      step.image.addEventListener('click', (e) => {
+        e.preventDefault()
+        console.log(`clicked on annotation ${step.name}`)
+        this.setStep(step.name)
       })
     })
 
@@ -297,37 +290,37 @@ class InteractiveDiagram {
     //   })
     // })
 
-    var diagramIcons = document.querySelectorAll(
-      '.diagram-icon, .diagram-icon-small'
-    )
-    diagramIcons.forEach((icon) => {
-      icon.addEventListener('click', (e) => {
-        let step = icon.getAttribute('data-diagram-step')
-        console.log(`clicked on ${step}`)
-        if (step !== null) {
-          this.setStep(step)
-        } else {
-          throw new Error(
-            `data-diagram-step attribute doesn't exist for ${icon}`
-          )
-        }
+    // var diagramIcons = document.querySelectorAll(
+    //   '.diagram-icon, .diagram-icon-small'
+    // )
+    // diagramIcons.forEach((icon) => {
+    //   icon.addEventListener('click', (e) => {
+    //     let step = icon.getAttribute('data-diagram-step')
+    //     console.log(`clicked on ${step}`)
+    //     if (step !== null) {
+    //       this.setStep(step)
+    //     } else {
+    //       throw new Error(
+    //         `data-diagram-step attribute doesn't exist for ${icon}`
+    //       )
+    //     }
 
-        // changePanel(document.querySelector('.js-panel-content-' + step))
-        // changeAnnotation(annotations, step)
-      })
-    })
+    // changePanel(document.querySelector('.js-panel-content-' + step))
+    // changeAnnotation(annotations, step)
+    // })
+    // })
   }
 
   private setNextStep() {
     let currentStepIndex = this.allSteps.findIndex(
-      (step) => step.id === this.currentStep.id
+      (step) => step.name === this.currentStep.name
     )
     this.setStep(undefined, currentStepIndex + 1)
   }
   private setPreviousStep() {
     // console.log('starting prev step calc')
     let currentStepIndex = this.allSteps.findIndex(
-      (step) => step.id === this.currentStep.id
+      (step) => step.name === this.currentStep.name
     )
     // console.log(
     //   `currentStepIndex is ${currentStepIndex}, figuring out what's prev`
@@ -345,10 +338,10 @@ class InteractiveDiagram {
       index = Math.max(0, Math.min(index, this.allSteps.length - 1))
       this.currentStep = this.allSteps[index]
     } else if (id) {
-      this.currentStep = this.allSteps.find((step) => step.id === id)!
+      this.currentStep = this.allSteps.find((step) => step.name === id)!
     }
     console.log(
-      `after calc bounds, step we want to show is ${this.currentStep.id}`
+      `after calc bounds, step we want to show is ${this.currentStep.name}`
     )
     this.showCurrentStep()
   }
@@ -357,7 +350,7 @@ class InteractiveDiagram {
    * Shows the current step and hides all other steps.
    */
   private showCurrentStep() {
-    console.log(`showing step ${this.currentStep.id}`)
+    console.log(`showing step ${this.currentStep.name}`)
     this.allSteps.forEach((step) => {
       if (step === this.currentStep) {
         step.show()
@@ -388,7 +381,7 @@ class InteractiveDiagram {
    * @param steps An array of strings that represent the data-step attribute of each step
    * @returns An array of HTMLElements that match the provided data-step attributes
    */
-  private getStepDivs(step: string) {
+  private getStepDiv(step: string) {
     let element = document.querySelector(`[data-step="${step}"]`)
     if (element) {
       return element as HTMLElement
@@ -401,7 +394,7 @@ class InteractiveDiagram {
     return `Hello! I created a new instance of InteractiveDiagram. Here are the details:
     contentDiv: ${this.contentDiv.id}
     diagramBaseSVG: ${this.diagramBaseSVG}
-    currentStep: ${this.currentStep.id}
+    currentStep: ${this.currentStep.name}
     `
   }
 }
