@@ -5,6 +5,14 @@ class Step {
   public images: HTMLElement[]
   public annotation: Annotation
 
+  /**
+   * Creates an instance of Step.
+   *
+   * @param stepId The name of the step
+   * @param content The div that contains the content of the step
+   * @param image The image or images associated with the step
+   * @param annotation The annotation that is associated with the step
+   */
   constructor(
     stepId: string,
     content: HTMLElement,
@@ -28,6 +36,9 @@ class Step {
     } else throw new Error('No image found')
   }
 
+  /**
+   * Shows the content div of the step, marks each associated image active
+   */
   public show() {
     this.contentContainer.style.display = 'block'
     this.contentContainer.classList.add('active')
@@ -38,6 +49,10 @@ class Step {
     })
     this.active = true
   }
+
+  /**
+   * Hides the content div of the step, marks each associated image inactive
+   */
   public hide() {
     this.contentContainer.style.display = 'none'
 
@@ -48,6 +63,9 @@ class Step {
     this.active = false
   }
 
+  /**
+   * Returns the active state of the step
+   */
   public isActive() {
     return this.active
   }

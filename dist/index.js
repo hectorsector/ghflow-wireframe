@@ -1,5 +1,13 @@
 "use strict";
 var Step = /** @class */ (function () {
+    /**
+     * Creates an instance of Step.
+     *
+     * @param stepId The name of the step
+     * @param content The div that contains the content of the step
+     * @param image The image or images associated with the step
+     * @param annotation The annotation that is associated with the step
+     */
     function Step(stepId, content, image, annotation) {
         this.name = stepId;
         this.contentContainer = content;
@@ -19,6 +27,9 @@ var Step = /** @class */ (function () {
         else
             throw new Error('No image found');
     }
+    /**
+     * Shows the content div of the step, marks each associated image active
+     */
     Step.prototype.show = function () {
         this.contentContainer.style.display = 'block';
         this.contentContainer.classList.add('active');
@@ -28,6 +39,9 @@ var Step = /** @class */ (function () {
         });
         this.active = true;
     };
+    /**
+     * Hides the content div of the step, marks each associated image inactive
+     */
     Step.prototype.hide = function () {
         this.contentContainer.style.display = 'none';
         this.annotation.deactivate();
@@ -36,6 +50,9 @@ var Step = /** @class */ (function () {
         });
         this.active = false;
     };
+    /**
+     * Returns the active state of the step
+     */
     Step.prototype.isActive = function () {
         return this.active;
     };
