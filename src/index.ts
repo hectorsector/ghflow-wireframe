@@ -2,21 +2,30 @@ class Step {
   public readonly name: string
   private active: boolean
   private contentContainer: HTMLElement
-  public image: Element
+  public images: HTMLElement[]
   public annotation: Annotation
 
   constructor(
     stepId: string,
     content: HTMLElement,
-    image: Element | null,
+    image: HTMLElement | NodeListOf<HTMLElement> | null,
     annotation: Annotation
   ) {
     this.name = stepId
     this.contentContainer = content
     this.active = false
     this.annotation = annotation
-    if (image) this.image = image
-    else throw new Error('No image found')
+    this.images = []
+
+    if (image) {
+      if (image instanceof HTMLElement) {
+        // Handle list of images
+        this.images.push(image)
+      } else {
+        // Handle single image
+        this.images = Array.from(image)
+      }
+    } else throw new Error('No image found')
   }
 
   public show() {
@@ -24,14 +33,18 @@ class Step {
     this.contentContainer.classList.add('active')
 
     this.annotation.activate()
-    this.image.classList.add('active')
+    this.images.forEach((image) => {
+      image.classList.add('active')
+    })
     this.active = true
   }
   public hide() {
     this.contentContainer.style.display = 'none'
 
     this.annotation.deactivate()
-    this.image.classList.remove('active')
+    this.images.forEach((image) => {
+      image.classList.remove('active')
+    })
     this.active = false
   }
 
@@ -205,7 +218,7 @@ class InteractiveDiagram {
         new Step(
           step.name,
           this.getStepDiv(step.name),
-          document.querySelector(`[data-diagram-step="${step.name}"]`),
+          document.querySelectorAll(`[data-diagram-step="${step.name}"]`),
           new Annotation(step.name, this.diagramBaseSVG, step.placement)
         )
       )
@@ -275,10 +288,12 @@ class InteractiveDiagram {
         console.log(`clicked on annotation ${step.name}`)
         this.setStep(step.name)
       })
-      step.image.addEventListener('click', (e) => {
-        e.preventDefault()
-        console.log(`clicked on annotation ${step.name}`)
-        this.setStep(step.name)
+      step.images.forEach((image) => {
+        image.addEventListener('click', (e) => {
+          e.preventDefault()
+          console.log(`clicked on annotation ${step.name}`)
+          this.setStep(step.name)
+        })
       })
     })
 

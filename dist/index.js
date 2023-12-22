@@ -5,8 +5,17 @@ var Step = /** @class */ (function () {
         this.contentContainer = content;
         this.active = false;
         this.annotation = annotation;
-        if (image)
-            this.image = image;
+        this.images = [];
+        if (image) {
+            if (image instanceof HTMLElement) {
+                // Handle list of images
+                this.images.push(image);
+            }
+            else {
+                // Handle single image
+                this.images = Array.from(image);
+            }
+        }
         else
             throw new Error('No image found');
     }
@@ -14,13 +23,17 @@ var Step = /** @class */ (function () {
         this.contentContainer.style.display = 'block';
         this.contentContainer.classList.add('active');
         this.annotation.activate();
-        this.image.classList.add('active');
+        this.images.forEach(function (image) {
+            image.classList.add('active');
+        });
         this.active = true;
     };
     Step.prototype.hide = function () {
         this.contentContainer.style.display = 'none';
         this.annotation.deactivate();
-        this.image.classList.remove('active');
+        this.images.forEach(function (image) {
+            image.classList.remove('active');
+        });
         this.active = false;
     };
     Step.prototype.isActive = function () {
@@ -117,7 +130,7 @@ var InteractiveDiagram = /** @class */ (function () {
         }
         this.allSteps = [];
         steps.forEach(function (step) {
-            _this.allSteps.push(new Step(step.name, _this.getStepDiv(step.name), document.querySelector("[data-diagram-step=\"".concat(step.name, "\"]")), new Annotation(step.name, _this.diagramBaseSVG, step.placement)));
+            _this.allSteps.push(new Step(step.name, _this.getStepDiv(step.name), document.querySelectorAll("[data-diagram-step=\"".concat(step.name, "\"]")), new Annotation(step.name, _this.diagramBaseSVG, step.placement)));
         });
         // set controls
         this.previousControl = this.getElementFromId(previousControlId);
@@ -177,10 +190,12 @@ var InteractiveDiagram = /** @class */ (function () {
                 console.log("clicked on annotation ".concat(step.name));
                 _this.setStep(step.name);
             });
-            step.image.addEventListener('click', function (e) {
-                e.preventDefault();
-                console.log("clicked on annotation ".concat(step.name));
-                _this.setStep(step.name);
+            step.images.forEach(function (image) {
+                image.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    console.log("clicked on annotation ".concat(step.name));
+                    _this.setStep(step.name);
+                });
             });
         });
         // annotations.forEach((annotation) => {
