@@ -59,7 +59,7 @@ var Step = /** @class */ (function () {
     return Step;
 }());
 var Annotation = /** @class */ (function () {
-    function Annotation(name, paper, placement) {
+    function Annotation(name, paper, source, placement) {
         this.COLORS = {
             DASH_COLOR: '#d4d4d4',
             ACTIVE_COLOR: '#932D70',
@@ -76,14 +76,25 @@ var Annotation = /** @class */ (function () {
             BOTTOM: 266,
         };
         this.target = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.source = source;
         this.extender = this.initLines();
-        this.target = this.createCircle(this.placement.left, this.placement.top + this.placement.height, 7, {
+        this.target = this.createCircle(this.placement.left + 30, this.placement.top + this.placement.height, 7, {
             fill: this.COLORS.INACTIVE_COLOR,
         });
         this.paper.appendChild(this.target);
+        // Create the foreignObject element
+        var foreignObject = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+        console.log("placing ".concat(this.name, " at ").concat(this.placement.top));
+        foreignObject.setAttribute('x', this.placement.left.toString());
+        foreignObject.setAttribute('y', this.placement.top.toString());
+        foreignObject.setAttribute('width', '100');
+        foreignObject.setAttribute('height', '100');
+        // Append the div to the foreignObject, and the foreignObject to the SVG
+        foreignObject.appendChild(this.source); // this.paper.appendChild(this.source)
+        paper.appendChild(foreignObject);
     }
     Annotation.prototype.initLines = function () {
-        var line = this.createLine(this.placement.left, this.placement.top, this.placement.left, this.placement.top + this.placement.height);
+        var line = this.createLine(this.placement.left + 30, this.placement.top, this.placement.left + 30, this.placement.top + this.placement.height);
         this.paper.appendChild(line);
         return line;
     };
@@ -147,7 +158,7 @@ var InteractiveDiagram = /** @class */ (function () {
         }
         this.allSteps = [];
         steps.forEach(function (step) {
-            _this.allSteps.push(new Step(step.name, _this.getStepDiv(step.name), document.querySelectorAll("[data-diagram-step=\"".concat(step.name, "\"]")), new Annotation(step.name, _this.diagramBaseSVG, step.placement)));
+            _this.allSteps.push(new Step(step.name, _this.getStepDiv(step.name), document.querySelectorAll("[data-diagram-step=\"".concat(step.name, "\"]")), new Annotation(step.name, _this.diagramBaseSVG, document.querySelector("[data-diagram-step=\"".concat(step.name, "\"]")), step.placement)));
         });
         // set controls
         this.previousControl = this.getElementFromId(previousControlId);
@@ -328,7 +339,7 @@ var githubFlow = new InteractiveDiagram('flow-content', 'scrollable-diagram',
 // - the SVG that illustrates the step
 // - a position to target the annotation (x,y)
 [
-    { name: 'branch', placement: { top: 20, left: 88, height: 207 } },
+    { name: 'branch', placement: { top: 10, left: 48, height: 207 } },
     {
         name: 'commits',
         placement: { top: 140, left: 289, height: 86, width: 113 },

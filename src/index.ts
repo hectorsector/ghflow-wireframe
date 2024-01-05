@@ -94,12 +94,14 @@ class Annotation {
 
   private extender: SVGLineElement
   public readonly target: SVGElement
+  private source: HTMLElement
 
   private active = false
 
   constructor(
     name: string,
     paper: SVGElement,
+    source: HTMLElement,
     placement: { [key: string]: number }
   ) {
     this.name = name
@@ -118,10 +120,12 @@ class Annotation {
       'g'
     ) as SVGElement
 
+    this.source = source
+
     this.extender = this.initLines()
 
     this.target = this.createCircle(
-      this.placement.left,
+      this.placement.left + 30,
       this.placement.top + this.placement.height,
       7,
       {
@@ -130,13 +134,27 @@ class Annotation {
     )
 
     this.paper.appendChild(this.target)
+    // Create the foreignObject element
+    const foreignObject = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'foreignObject'
+    )
+    console.log(`placing ${this.name} at ${this.placement.top}`)
+    foreignObject.setAttribute('x', this.placement.left.toString())
+    foreignObject.setAttribute('y', this.placement.top.toString())
+    foreignObject.setAttribute('width', '100')
+    foreignObject.setAttribute('height', '100')
+
+    // Append the div to the foreignObject, and the foreignObject to the SVG
+    foreignObject.appendChild(this.source) // this.paper.appendChild(this.source)
+    paper.appendChild(foreignObject)
   }
 
   private initLines() {
     let line = this.createLine(
-      this.placement.left,
+      this.placement.left + 30,
       this.placement.top,
-      this.placement.left,
+      this.placement.left + 30,
       this.placement.top + this.placement.height
     )
     this.paper.appendChild(line)
@@ -237,7 +255,12 @@ class InteractiveDiagram {
           step.name,
           this.getStepDiv(step.name),
           document.querySelectorAll(`[data-diagram-step="${step.name}"]`),
-          new Annotation(step.name, this.diagramBaseSVG, step.placement)
+          new Annotation(
+            step.name,
+            this.diagramBaseSVG,
+            document.querySelector(`[data-diagram-step="${step.name}"]`)!,
+            step.placement
+          )
         )
       )
     })
@@ -440,7 +463,7 @@ let githubFlow = new InteractiveDiagram(
   // - the SVG that illustrates the step
   // - a position to target the annotation (x,y)
   [
-    { name: 'branch', placement: { top: 20, left: 88, height: 207 } },
+    { name: 'branch', placement: { top: 10, left: 48, height: 207 } },
     {
       name: 'commits',
       placement: { top: 140, left: 289, height: 86, width: 113 },
