@@ -8,7 +8,7 @@ var Step = /** @class */ (function () {
      * @param image The image or images associated with the step
      * @param annotation The annotation that is associated with the step
      */
-    function Step(stepId, content, image, annotation) {
+    function Step(stepId, content, image, annotations) {
         this.name = stepId;
         this.contentContainer = content;
         this.active = false;
