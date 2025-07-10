@@ -3,7 +3,7 @@ class Step {
   private active: boolean
   private contentContainer: HTMLElement
   public images: HTMLElement[]
-  public annotation: Annotation
+  public annotations: Annotation
 
   /**
    * Creates an instance of Step.
