@@ -66,15 +66,13 @@ class Step {
   /**
    * Returns the active state of the step
    */
-  public isActive() {
-    return this.active
+  public isHidden() {
+    return !this.active
   }
 }
 
 interface Placement {
   top: number
-  left: number
-  height: number
   width: number
   BOTTOM: number
 }
@@ -133,7 +131,7 @@ class Annotation {
       }
     )
 
-    this.paper.appendChild(this.target)
+    this.paper.appendChild()
     // Create the foreignObject element
     const foreignObject = document.createElementNS(
       'http://www.w3.org/2000/svg',
